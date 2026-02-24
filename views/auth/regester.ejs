@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Escape - Register</title>
+   
+    <style>
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fdf6ec 0%, #f6e3cf 100%);
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+        }
+
+        #registerForm {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2.5rem; border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%; max-width: 400px;
+            display: flex; flex-direction: column;
+        }
+
+        .logo-container { text-align: center; margin-bottom: 1rem; }
+        .logo-container img { max-width: 150px; }
+
+        /* حاوية كلمة المرور لتكون العين بداخلها */
+        .password-wrapper {
+           position: relative;
+           margin-top: 15px;
+        }
+        #password {
+    padding-right: 45px;
+       }
+
+        input {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: 0.3s;
+            color: #333;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #name, #email { margin-top: 15px; }
+
+        input:focus {
+            border-color: #3583c7;
+            box-shadow: 0 0 5px rgba(53, 131, 199, 0.3);
+        }
+
+        /* تنسيق أيقونة العين */
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+             cursor: pointer;
+             color: #88847e;
+        }
+
+        .error { color: #e74c3c; font-size: 0.8rem; margin-top: 5px; min-height: 1rem; }
+
+        button {
+            margin-top: 20px; padding: 12px;
+            background: linear-gradient(135deg, #fca33a 0%, #de4a79 100%);
+            color: white; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.3s;
+        }
+
+        button:hover { background: linear-gradient(135deg, #de4a79 0%, #855fb1 100%); }
+
+        .google-btn {
+            text-align: center; margin-top: 15px; text-decoration: none;
+            color: #88847e; font-size: 0.9rem; display: flex;
+            align-items: center; justify-content: center;
+            border: 1px solid #ddd; padding: 10px; border-radius: 8px; transition: 0.3s;
+        }
+
+        .login-link {
+            text-align: center; margin-top: 20px; font-size: 0.9rem;
+            color: #3583c7; text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <form id="registerForm" action="/regester" method="POST">
+        <div class="logo-container">
+            <img src="https://i.ibb.co/6w21QnC/image.png" alt="Zen Escape Logo">
+        </div>
+
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        
+        <input type="text" name="name" value="<%= oldInput?.name || '' %>" id="name" placeholder="Name">
+        <small class="error"><%= errors?.name || '' %></small>
+
+        <input type="email" name="email" value="<%= oldInput?.email || '' %>" id="email" placeholder="Email">
+        <small class="error"><%= errors?.email || '' %></small>
+
+        <div class="password-wrapper">
+            <input type="password" name="password" id="password" placeholder="Password">
+            <span class="toggle-password" id="eyeIcon"> 
+                
+                <i data-lucide="eye"></i>
+            </span>
+        </div>
+        <small class="error"><%= errors?.password || '' %></small>
+        
+        <a href="/auth/google" class="google-btn">Sign in with Google</a>
+        <button type="submit">Register</button>
+        <a href="/auth/login" class="login-link">Already have an account? Login</a>
+    </form>
+<script src="/js/lucide.js"></script>
+<script src="/js/regester.js"></script>
+
+    
+</body>
+</html>

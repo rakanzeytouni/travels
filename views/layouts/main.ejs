@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Main</title>
+</head>
+<body>
+
+    <form action="/regester">
+        <button type="submit">sign in</button>
+    </form>
+
+    <h1>Hello </h1>
+
+<div id="offlineMessage" style="
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    min-width: 300px;
+    padding: 16px 24px;
+    background: rgba(220, 38, 38, 0.95);
+    backdrop-filter: blur(8px);
+    color: white;
+    border-radius: 12px;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M18.36 6.64a9 9 0 010 12.72M15.54 9.46a5 5 0 010 7.08M4 11l2 2 2-2M1 1l22 22"></path>
+    </svg>
+    <span style="font-size: 14px; letter-spacing: 0.3px;">
+        Connection lost. Please check your internet.
+    </span>
+</div>
+
+    <script src="/js/offline.js"></script>
+
+</body>
+</html>
