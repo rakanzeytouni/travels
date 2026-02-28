@@ -89,7 +89,7 @@
 
     <form id="registerForm" action="/regester" method="POST">
         <div class="logo-container">
-            <img src="https://i.ibb.co/6w21QnC/image.png" alt="Zen Escape Logo">
+            <img src="" alt="Zen Escape Logo">
         </div>
 
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -109,7 +109,7 @@
         </div>
         <small class="error"><%= errors?.password || '' %></small>
         
-        <a href="/auth/google" class="google-btn">Sign in with Google</a>
+        <a href="auth/auth/google" class="google-btn">Sign in with Google</a>
         <button type="submit">Register</button>
         <a href="/auth/login" class="login-link">Already have an account? Login</a>
     </form>

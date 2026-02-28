@@ -13,8 +13,11 @@ const User = require("./models/User");
 const app = express();
 require("./config/db");
 require("./config/passport");
-app.use(express.static("public"));
-
+app.use((req,res,next)=>{
+   res.locals.oldInput = {};
+   res.locals.errors = {};
+   next();
+});
 app.use(helmet());
 
 app.use("/login", rateLimit({
@@ -30,12 +33,13 @@ app.set("views", path.join(__dirname, "views"));
 
 app.use(cookieParser());
 app.use(session({
-  secret: "mySecretKey", 
+  secret: process.env.Secret_secsion, 
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     secure: false, 
+    sameSite: "strict",
     maxAge: 60 * 60 * 1000
   }
 }));
@@ -137,7 +141,7 @@ if (!validatePassword(req.body.password)) {
              <p>Thank you for registering!</p>`,
     });
 
-    res.render("verifycode/verify", { email });
+    res.render("verifycode/verify", { email, oldInput: { code: "" }, errors: {} });
   } catch (error) {
     res.status(500).send(error.message);
   }
@@ -155,24 +159,33 @@ app.post("/verify", async (req, res) => {
       user.isVerified = true;
       user.verificationCode = null;
       await user.save();
-      return res.render("layouts/main");
+      return res.redirect("/layouts/main");
     }
 
-    res.send("Invalid code, <a href='/regester'>try again</a>");
+    res.status(400).render("verifycode/verify", {
+    errors: { verify: "The code does not match, please try again" },
+    oldInput: { code: req.body.code || "" },
+    email: req.body.email
+});
   } catch (error) {
     res.status(500).send(error.message);
   }
 });
-
-
-
-
-
+app.get("/verify", (req, res) => {
+    res.render("verifycode/verify", {
+        errors: {},
+        oldInput: { code: "" },
+        email: ""
+    });
+}); 
 
 app.get("/layouts/main", (req, res) => {
   res.render("layouts/main");
 });
-
-app.listen(3001, () => {
-  console.log("Server running on port 3001");
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).render("error");
 });
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT)
