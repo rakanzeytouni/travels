@@ -9,10 +9,10 @@ const session = require("express-session");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const csrf = require("csurf");
-const User = require("./models/User");
+const User = require("./models/User.js");
 const app = express();
-require("./config/db");
-require("./config/passport");
+require("./config/db.js");
+require("./config/passport.js");
 app.use((req,res,next)=>{
    res.locals.oldInput = {};
    res.locals.errors = {};
