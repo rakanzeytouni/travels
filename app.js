@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const nodemailer = require("nodemailer");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
+const MongoStore = require("connect-mongo").default;
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const csrf = require("csurf");
@@ -36,6 +37,12 @@ app.use(session({
   secret: process.env.Secret_secsion, 
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,   // e.g. "mongodb://localhost:27017/mydb"
+    ttl: 60 * 60                       // session lifetime in seconds
+  }),
+
+
   cookie: {
     httpOnly: true,
     secure: true, 
