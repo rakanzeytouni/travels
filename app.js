@@ -2,7 +2,8 @@ const express = require("express");
 require("dotenv").config();
 const path = require("path");
 const bcrypt = require("bcrypt");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const MongoStore = require("connect-mongo").default;
@@ -158,20 +159,10 @@ app.post("/regester", async (req, res) => {
 
     const newUser = new User({ name, email, password: hashedPassword, verificationCode });
     await newUser.save();
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-       port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-       family: 4 
-    });
-
-    await transporter.sendMail({
-      from: `"Rakan's App" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: `"Rakan's App" <onboarding@resend.dev>`,
       to: email,
       subject: "Verify your account",
       html: `<p>Hello ${name}</p><p>Your code: <b>${verificationCode}</b></p>`
