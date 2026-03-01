@@ -25,7 +25,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set('trust proxy', 1);
 app.use(express.static(path.join(__dirname, "public")));
-
+app.set('trust proxy', 1);
 /* =========================
    Parsing
 ========================= */
@@ -37,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
    Session
 ========================= */
 app.use(session({
-  secret: process.env.SESSION_SECRET || "dev-secret",
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
@@ -46,10 +46,12 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
- secure: process.env.NODE_ENV === "production", 
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 60 * 60 * 1000,
-  path: '/' // تأكد أن الكوكي متاح لكل المسارات
+    // ✅ هام جداً: true في الإنتاج (لأن Render تستخدم HTTPS)
+    secure: process.env.NODE_ENV === "production",
+    // ✅ هام جداً: 'none' يسمح للكوكي بالعمل مع النطاقات الخارجية/الآمنة
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 60 * 60 * 1000,
+    path: '/'
   }
 }));
 // داخل Middleware التحقق من CSRF
@@ -159,8 +161,8 @@ app.post("/regester", async (req, res) => {
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
+       port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
