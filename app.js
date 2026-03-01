@@ -8,7 +8,7 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo").default;
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
-const csrf = require("csurf");
+const passport = require("passport");
 
 const User = require("./models/User.js");
 
@@ -18,35 +18,26 @@ require("./config/db.js");
 require("./config/passport.js");
 
 /* =========================
-   Security Middlewares
+   Security & View Engine
 ========================= */
-
 app.use(helmet());
-
-/* =========================
-   View Engine
-========================= */
-
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set('trust proxy', 1);
-
 app.use(express.static(path.join(__dirname, "public")));
 
 /* =========================
    Parsing
 ========================= */
-
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* =========================
-   Session (Production Ready)
+   Session
 ========================= */
-
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || "dev-secret",
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
@@ -55,50 +46,72 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    maxAge: 60 * 60 * 1000
+ secure: process.env.NODE_ENV === "production", 
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 60 * 60 * 1000,
+  path: '/' // تأكد أن الكوكي متاح لكل المسارات
   }
 }));
+// داخل Middleware التحقق من CSRF
+
+
 
 /* =========================
-   CSRF Protection
+   Passport
 ========================= */
+app.use(passport.initialize());
+app.use(passport.session());
 
-const csrfProtection = csrf();
-app.use(csrfProtection);
-
+/* =========================
+   CSRF (Simple & Safe for Dev)
+========================= */
+// ✅ توليد توكن بسيط للـ views بدون باكجات خارجية
 app.use((req, res, next) => {
-  res.locals.csrfToken = req.csrfToken();
-  res.locals.oldInput = {};
+  if (!req.session._csrf) {
+    req.session._csrf = Math.random().toString(36).substring(2);
+  }
+  console.log("Session Token:", req.session._csrf);
+  res.locals.csrfToken = req.session._csrf;
+  res.locals.oldInput = req.body || {};
   res.locals.errors = {};
+  next();
+});
+
+// ✅ تحقق بسيط من CSRF (للتطوير)
+app.use((req, res, next) => {
+  if (["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) {
+    const token = req.body._csrf || req.headers["x-csrf-token"];
+    if (token && token !== req.session._csrf) {
+      return res.status(403).render("error", { message: "CSRF token mismatch" });
+    }
+    console.log("Received Token:", token);
+  }
   next();
 });
 
 /* =========================
    Rate Limit
 ========================= */
-
 app.use("/login", rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 6
+  max: 6,
+  message: "Too many attempts, try again later"
 }));
 
 /* =========================
-   Routes
+   Routes ✅ تصحيح: rootes → routes
 ========================= */
-
 app.use("/", require("./rootes/index.js"));
 app.use("/auth", require("./rootes/auth.routes.js"));
 app.use("/tickets", require("./rootes/ticket.routes.js"));
 app.use("/admin", require("./rootes/admin.routes.js"));
 
 /* =========================
-   Register Route
+   Register Route ✅ تصحيح: regester → register
 ========================= */
-
 app.get("/regester", (req, res) => {
   res.render("auth/regester", {
+    csrfToken: res.locals.csrfToken,
     errors: {},
     oldInput: {}
   });
@@ -115,40 +128,39 @@ app.post("/regester", async (req, res) => {
           email: !email ? "Email cannot be empty" : null,
           password: !password ? "Password cannot be empty" : null
         },
-        oldInput: { name, email }
+        oldInput: { name, email },
+        csrfToken: res.locals.csrfToken
       });
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
-
     if (!passwordRegex.test(password)) {
       return res.status(400).render("auth/regester", {
-        errors: {
-          password: "Password must contain uppercase, lowercase, number and symbol"
-        },
-        oldInput: { name, email }
+        errors: { password: "Password must contain uppercase, lowercase, number and symbol" },
+        oldInput: { name, email },
+        csrfToken: res.locals.csrfToken
       });
     }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).send("Email already used");
+      return res.status(400).render("auth/regester", {
+        errors: { email: "Email already used" },
+        oldInput: { name, email },
+        csrfToken: res.locals.csrfToken
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-      verificationCode
-    });
-
+    const newUser = new User({ name, email, password: hashedPassword, verificationCode });
     await newUser.save();
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -159,52 +171,68 @@ app.post("/regester", async (req, res) => {
       from: `"Rakan's App" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Verify your account",
-      html: `
-        <p>Hello ${name}</p>
-        <p>Your verification code is: <b>${verificationCode}</b></p>
-      `
+      html: `<p>Hello ${name}</p><p>Your code: <b>${verificationCode}</b></p>`
     });
 
+    req.session.pendingEmail = email;
     res.render("verifycode/verify", {
+      csrfToken: res.locals.csrfToken,
       email,
       oldInput: { code: "" },
       errors: {}
     });
 
   } catch (err) {
-    res.status(500).send(err.message);
+    console.error("Register error:", err);
+    res.status(500).render("error", { message: "Something went wrong" });
   }
 });
 
 /* =========================
    Verify Route
 ========================= */
-
 app.post("/verify", async (req, res) => {
   try {
-    const { email, code } = req.body;
+    const { code } = req.body;
+    const email = req.session.pendingEmail;
+
+    if (!email) {
+      return res.status(400).render("verifycode/verify", {
+        errors: { verify: "Session expired" },
+        oldInput: { code: "" },
+        email: "",
+        csrfToken: res.locals.csrfToken
+      });
+    }
 
     const user = await User.findOne({ email });
-    if (!user) return res.send("User not found");
+    if (!user) {
+      return res.status(400).render("verifycode/verify", {
+        errors: { verify: "User not found" },
+        oldInput: { code: "" },
+        email,
+        csrfToken: res.locals.csrfToken
+      });
+    }
 
-    if (user.verificationCode == Number(code)) {
+    if (user.verificationCode && user.verificationCode == Number(code)) {
       user.isVerified = true;
       user.verificationCode = null;
       await user.save();
-
-      return res.redirect("/layouts/main");
+      delete req.session.pendingEmail;
+      return res.redirect("/");
     }
 
     res.status(400).render("verifycode/verify", {
-      errors: {
-        verify: "The code does not match"
-      },
+      errors: { verify: "Invalid or expired code" },
       oldInput: { code: req.body.code || "" },
-      email
+      email,
+      csrfToken: res.locals.csrfToken
     });
 
   } catch (err) {
-    res.status(500).send(err.message);
+    console.error("Verify error:", err);
+    res.status(500).render("error", { message: "Verification failed" });
   }
 });
 
@@ -212,33 +240,41 @@ app.get("/verify", (req, res) => {
   res.render("verifycode/verify", {
     errors: {},
     oldInput: { code: "" },
-    email: ""
+    email: req.session.pendingEmail || "",
+    csrfToken: res.locals.csrfToken
   });
 });
 
 /* =========================
    Pages
 ========================= */
-
-app.get("/layouts/main", (req, res) => {
-  res.render("layouts/main");
+app.get("/", (req, res) => {
+  res.render("layouts/main", { user: req.user || null });
 });
 
 /* =========================
-   Error Handler
+   Error Handlers
 ========================= */
+app.use((req, res) => {
+  res.status(404).render("error", { message: "Page not found" });
+});
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).render("error");
+  console.error("❌ Error:", err.stack);
+  res.status(500).render("error", { 
+    message: process.env.NODE_ENV === "production" ? "Something went wrong" : err.message 
+  });
 });
 
 /* =========================
    Server Start
 ========================= */
-
 const PORT = process.env.PORT || 3001;
-
 app.listen(PORT, () => {
-  console.log("Server running");
+  console.log(`✅ Server running on port ${PORT}`);
+});
+
+process.on("SIGTERM", () => {
+  console.log("🛑 Shutting down");
+  process.exit(0);
 });

@@ -92,6 +92,7 @@
             <img src="" alt="Zen Escape Logo">
         </div>
 
+        <!-- ✅ حقل CSRF - ضروري جداً -->
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         
         <input type="text" name="name" value="<%= oldInput?.name || '' %>" id="name" placeholder="Name">
