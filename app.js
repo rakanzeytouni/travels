@@ -38,14 +38,12 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,   // e.g. "mongodb://localhost:27017/mydb"
-    ttl: 60 * 60                       // session lifetime in seconds
+    mongoUrl: process.env.MONGO_URI,
+    ttl: 60 * 60
   }),
-
-
   cookie: {
     httpOnly: true,
-    secure: true, 
+    secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 60 * 60 * 1000
   }
@@ -55,7 +53,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-const csrfProtection = csrf({ cookie: true });
+const csrfProtection = csrf();
 app.use(csrfProtection);
 
 
@@ -82,7 +80,7 @@ app.post("/regester", async (req, res) => {
   try {
     const { name, email, password } = req.body;
     if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string") {
-      return res.status(400).send("auth/regester",{
+      return res.status(400).render("auth/regester",{
         errors: {},
         oldInput: {}
       });
@@ -195,4 +193,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT)
+app.listen(PORT, () => {
+  console.log("Server running");
+});
