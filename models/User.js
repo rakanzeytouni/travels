@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema({
   verificationCode: String,
    googleId: {
       type: String,
-      default: null
+      sparse: true
     },
    role: {
       type: String,
