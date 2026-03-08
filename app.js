@@ -53,6 +53,8 @@ app.use(session({
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 60 * 60 * 1000,
     path: '/'
+    //process.env.NODE_ENV === "production",
+    //process.env.NODE_ENV === "production" ? "none" : "lax
   }
 }));
 // داخل Middleware التحقق من CSRF
@@ -100,14 +102,20 @@ app.use("/login", rateLimit({
   max: 6,
   message: "Too many attempts, try again later"
 }));
+app.use("/verify",rateLimit({
+  windowMs: 15 * 60 *1000,
+  max:6,
+  message: "to many attempts , try again later"
+}));
+
 
 /* =========================
    Routes ✅ تصحيح: rootes → routes
 ========================= */
-app.use("/", require("./rootes/index.js"));
-app.use("/auth", require("./rootes/auth.routes.js"));
-app.use("/tickets", require("./rootes/ticket.routes.js"));
-app.use("/admin", require("./rootes/admin.routes.js"));
+app.use("/", require("./routes/index.js"));
+app.use("/auth", require("./routes/auth.routes.js"));
+app.use("/tickets", require("./routes/ticket.routes.js"));
+app.use("/admin", require("./routes/admin.routes.js"));
 
 /* =========================
    Register Route ✅ تصحيح: regester → register

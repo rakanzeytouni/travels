@@ -6,17 +6,17 @@ const bcrypt = require("bcrypt");
 const router = express.Router();
 
 
-router.get("/auth/google",
+router.get("/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 
 router.get("/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "/login"
+    failureRedirect: "/auth/login"
   }),
   (req, res) => {
-    res.redirect("/layouts/main");
+    res.redirect("/");
   }
 );
 router.get("/login", (req, res) => {
