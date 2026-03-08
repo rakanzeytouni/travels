@@ -50,9 +50,9 @@ app.use(session({
   cookie: {
     httpOnly: true,
     // ✅ هام جداً: true في الإنتاج (لأن Render تستخدم HTTPS)
-    secure:false,
+    secure:process.env.NODE_ENV === "production",
     // ✅ هام جداً: 'none' يسمح للكوكي بالعمل مع النطاقات الخارجية/الآمنة
-    sameSite: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 60 * 60 * 1000,
     path: '/'
     //process.env.NODE_ENV === "production",
