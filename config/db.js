@@ -1,7 +1,29 @@
+// config/db.js
 const mongoose = require("mongoose",{
   family: 4
-})
+});
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log(err));
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      tls: true,
+    });
+
+    // ✅ كود الاختبار هون (لأن mongoose موجود هون)
+    mongoose.connection.once("open", () => {
+      console.log("🟢 MongoDB is READY!");
+    });
+
+    console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`);
+  } catch (error) {
+    console.error(`❌ MongoDB Connection Error: ${error.message}`);
+    process.exit(1);
+  }
+};
+
+module.exports = connectDB;
+//const mongoose = require("mongoose",{
+  //family: 4
+//})

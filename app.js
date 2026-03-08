@@ -3,6 +3,7 @@ require("dotenv").config();
 const path = require("path");
 const bcrypt = require("bcrypt");
 const { Resend } = require("resend");
+const mongoose = require("mongoose"); 
 
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
@@ -15,7 +16,8 @@ const User = require("./models/User.js");
 
 const app = express();
 
-require("./config/db.js");
+const connectDB = require("./config/db");
+connectDB();
 require("./config/passport.js");
 
 /* =========================
@@ -48,9 +50,9 @@ app.use(session({
   cookie: {
     httpOnly: true,
     // ✅ هام جداً: true في الإنتاج (لأن Render تستخدم HTTPS)
-    secure: process.env.NODE_ENV === "production",
+    secure:false,
     // ✅ هام جداً: 'none' يسمح للكوكي بالعمل مع النطاقات الخارجية/الآمنة
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    sameSite: true,
     maxAge: 60 * 60 * 1000,
     path: '/'
     //process.env.NODE_ENV === "production",
@@ -275,7 +277,14 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
+// ✅ اختبار اتصال سريع (احذفه بعدين)
+mongoose.connection.once("open", () => {
+  console.log("🟢 MongoDB is READY!");
+});
 
+mongoose.connection.on("error", (err) => {
+  console.log("🔴 MongoDB Error:", err.message);
+});
 process.on("SIGTERM", () => {
   console.log("🛑 Shutting down");
   process.exit(0);
