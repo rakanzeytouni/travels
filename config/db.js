@@ -11,7 +11,6 @@ const connectDB = async () => {
       tls: true,
     });
 
-    // ✅ كود الاختبار هون (لأن mongoose موجود هون)
     mongoose.connection.once("open", () => {
       console.log("🟢 MongoDB is READY!");
     });

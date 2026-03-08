@@ -49,9 +49,7 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    // ✅ هام جداً: true في الإنتاج (لأن Render تستخدم HTTPS)
     secure:process.env.NODE_ENV === "production",
-    // ✅ هام جداً: 'none' يسمح للكوكي بالعمل مع النطاقات الخارجية/الآمنة
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 60 * 60 * 1000,
     path: '/'
@@ -59,7 +57,7 @@ app.use(session({
     //process.env.NODE_ENV === "production" ? "none" : "lax
   }
 }));
-// داخل Middleware التحقق من CSRF
+
 
 
 
@@ -70,9 +68,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 /* =========================
-   CSRF (Simple & Safe for Dev)
+   CSRF
 ========================= */
-// ✅ توليد توكن بسيط للـ views بدون باكجات خارجية
+
 app.use((req, res, next) => {
   if (!req.session._csrf) {
     req.session._csrf = Math.random().toString(36).substring(2);
@@ -84,14 +82,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ تحقق بسيط من CSRF (للتطوير)
 app.use((req, res, next) => {
   if (["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) {
     const token = req.body._csrf || req.headers["x-csrf-token"];
     if (token && token !== req.session._csrf) {
       return res.status(403).render("error", { message: "CSRF token mismatch" });
     }
-    console.log("Received Token:", token);
   }
   next();
 });
@@ -112,16 +108,14 @@ app.use("/verify",rateLimit({
 
 
 /* =========================
-   Routes ✅ تصحيح: rootes → routes
+routes
 ========================= */
 app.use("/", require("./routes/index.js"));
 app.use("/auth", require("./routes/auth.routes.js"));
 app.use("/tickets", require("./routes/ticket.routes.js"));
 app.use("/admin", require("./routes/admin.routes.js"));
 
-/* =========================
-   Register Route ✅ تصحيح: regester → register
-========================= */
+
 app.get("/regester", (req, res) => {
   res.render("auth/regester", {
     csrfToken: res.locals.csrfToken,
@@ -276,14 +270,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-});
-// ✅ اختبار اتصال سريع (احذفه بعدين)
-mongoose.connection.once("open", () => {
-  console.log("🟢 MongoDB is READY!");
-});
-
-mongoose.connection.on("error", (err) => {
-  console.log("🔴 MongoDB Error:", err.message);
 });
 process.on("SIGTERM", () => {
   console.log("🛑 Shutting down");
