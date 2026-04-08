@@ -1,34 +1,88 @@
-const express = require("express");
+ const express = require("express");
 require("dotenv").config();
 const path = require("path");
 const bcrypt = require("bcrypt");
 const { Resend } = require("resend");
+const sgMail = require('@sendgrid/mail');
 const mongoose = require("mongoose"); 
-
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
+const { body, validationResult } = require("express-validator");
 const MongoStore = require("connect-mongo").default;
 const rateLimit = require("express-rate-limit");
+const requestIp = require('request-ip');
 const helmet = require("helmet");
+const csrf = require("csurf");
 const passport = require("passport");
-
 const User = require("./models/User.js");
-
 const app = express();
-
 const connectDB = require("./config/db");
 connectDB();
 require("./config/passport.js");
-
 /* =========================
    Security & View Engine
 ========================= */
-app.use(helmet());
+
+const validateRegister = [
+  body("email")
+    .isEmail()
+    .withMessage("Invalid email")
+    .normalizeEmail(),
+
+  body("password")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters")
+    .matches(/[A-Z]/)
+    .withMessage("Password must contain at least one uppercase letter")
+    .matches(/[0-9]/)
+    .withMessage("Password must contain at least one number")
+    .matches(/[^A-Za-z0-9]/)
+    .withMessage("Password must contain at least one symbol"),
+
+  body("name")
+    .trim()
+    .escape()
+    .withMessage("Invalid name")
+];
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net"
+        ],
+
+        styleSrc: [
+          "'self'",
+          "https://cdn.jsdelivr.net"
+        ],
+
+        imgSrc: [
+          "'self'",
+          "data:"
+        ],
+
+        fontSrc: [
+          "'self'",
+          "https://cdn.jsdelivr.net"
+        ],
+
+        objectSrc: ["'none'"],
+
+        upgradeInsecureRequests: []
+      }
+    }
+  })
+);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set('trust proxy', 1);
 app.use(express.static(path.join(__dirname, "public")));
-app.set('trust proxy', 1);
 /* =========================
    Parsing
 ========================= */
@@ -49,16 +103,41 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure:process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure:process.env.NODE_ENV === "production", 
+    sameSite: true,
     maxAge: 60 * 60 * 1000,
     path: '/'
     //process.env.NODE_ENV === "production",
     //process.env.NODE_ENV === "production" ? "none" : "lax
   }
 }));
+ /* 
+========================= */
+const csrfProtection = require("csurf")({
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: true
+  }
+});
 
+app.use(csrfProtection);
 
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  res.locals.oldInput = req.body || {};
+  res.locals.errors = {};
+  next();
+});
+// في app.js
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      return res.redirect(`https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+}
 
 
 /* =========================
@@ -68,43 +147,64 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 /* =========================
-   CSRF
+   Global Variables for EJS
 ========================= */
-
 app.use((req, res, next) => {
-  if (!req.session._csrf) {
-    req.session._csrf = Math.random().toString(36).substring(2);
-  }
-  console.log("Session Token:", req.session._csrf);
-  res.locals.csrfToken = req.session._csrf;
-  res.locals.oldInput = req.body || {};
-  res.locals.errors = {};
+  res.locals.user = req.user || req.session.user ;
+  res.locals.isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : false;
+  console.log(`user:${req.user || req.session.user} `);
+  console.log(`authenticated :${ res.locals.isAuthenticated}`)
+  console.log(`res ${ res.locals.user}`)
   next();
 });
-
-app.use((req, res, next) => {
-  if (["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) {
-    const token = req.body._csrf || req.headers["x-csrf-token"];
-    if (token && token !== req.session._csrf) {
-      return res.status(403).render("error", { message: "CSRF token mismatch" });
-    }
-  }
-  next();
-});
-
 /* =========================
-   Rate Limit
+   Rate Limiting - Production Ready
 ========================= */
-app.use("/login", rateLimit({
+
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 5, 
+  keyGenerator: (req, res) => {
+   const ip = requestIp.getClientIp(req)|| 'unknown';
+    const email = (req.body?.email || 'unknown').toLowerCase();
+    return `login:${ip}:${email}`; 
+  },
+  message: { error: "Too many login attempts. Try again in 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+
+const verifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 6,
-  message: "Too many attempts, try again later"
-}));
-app.use("/verify",rateLimit({
-  windowMs: 15 * 60 *1000,
-  max:6,
-  message: "to many attempts , try again later"
-}));
+  max: 5,
+  keyGenerator: (req, res) => {
+    const ip = requestIp.getClientIp(req) || 'unknown';
+    const email = (req.session?.pendingEmail || 'unknown').toLowerCase();
+    return `verify:${ip}:${email}`; 
+  },
+  message: { error: "Too many verification attempts. Try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  keyGenerator: (req, res) => {
+    const ip = requestIp.getClientIp(req) || 'unknown';
+    return `register:${ip}`;
+  },
+  message: { error: "Too many registration attempts from this network." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+
+app.use("/auth/login", loginLimiter);
+app.use("/verify", verifyLimiter);
+app.use("/regester", registerLimiter);
 
 
 /* =========================
@@ -124,7 +224,14 @@ app.get("/regester", (req, res) => {
   });
 });
 
-app.post("/regester", async (req, res) => {
+app.post("/regester" , validateRegister, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+  return res.status(400).render("register", {
+    errors: errors.array(), // array من الأخطاء
+    oldInput: req.body
+  });
+  }
   try {
     const { name, email, password } = req.body;
 
@@ -158,20 +265,29 @@ app.post("/regester", async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
+    const hashedCode = await bcrypt.hash(verificationCode.toString(), 10);
+    const codeExpiry = Date.now() + 15 * 60 * 1000; // 15 دقيقة
 
-    const newUser = new User({ name, email, password: hashedPassword, verificationCode });
+ const newUser = new User({ 
+      name, 
+      email, 
+      password: hashedPassword, 
+      verificationCode: hashedCode,
+      verificationCodeExpiry: codeExpiry
+    });
     await newUser.save();
-    const resend = new Resend(process.env.RESEND_API_KEY);
+   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-    await resend.emails.send({
-      from: `"Rakan's App" <onboarding@resend.dev>`,
-      to: email,
+    const msg =({
+       to: email,
+      from: "vibesguesthouse29@gmail.com",
       subject: "Verify your account",
       html: `<p>Hello ${name}</p><p>Your code: <b>${verificationCode}</b></p>`
     });
-
+  req.session.newuser =newUser ;
+  console.log(`hello new user : ${req.session.newuser}`);
     req.session.pendingEmail = email;
     res.render("verifycode/verify", {
       csrfToken: res.locals.csrfToken,
@@ -179,7 +295,8 @@ app.post("/regester", async (req, res) => {
       oldInput: { code: "" },
       errors: {}
     });
-
+await sgMail.send(msg);
+console.log(`✅ Email sent to ${email}`);
   } catch (err) {
     console.error("Register error:", err);
     res.status(500).render("error", { message: "Something went wrong" });
@@ -187,47 +304,61 @@ app.post("/regester", async (req, res) => {
 });
 
 /* =========================
-   Verify Route
+   Verify Route - Hardened
 ========================= */
 app.post("/verify", async (req, res) => {
   try {
-    const { code } = req.body;
-    const email = req.session.pendingEmail;
+    const { email, code } = req.body; // استلم البريد مع الكود مباشرة
 
-    if (!email) {
+    if (!email || !code) {
       return res.status(400).render("verifycode/verify", {
-        errors: { verify: "Session expired" },
+        errors: { verify: "Email and code are required" },
         oldInput: { code: "" },
-        email: "",
+        email: email || "",
         csrfToken: res.locals.csrfToken
       });
     }
 
+    // 1. جلب المستخدم مباشرة من DB
     const user = await User.findOne({ email });
-    if (!user) {
+
+    if (!user || user.isVerified) {
       return res.status(400).render("verifycode/verify", {
-        errors: { verify: "User not found" },
+        errors: { verify: "Invalid request or already verified" },
         oldInput: { code: "" },
         email,
         csrfToken: res.locals.csrfToken
       });
     }
 
-    if (user.verificationCode && user.verificationCode == Number(code)) {
-      user.isVerified = true;
-      user.verificationCode = null;
-      await user.save();
-      delete req.session.pendingEmail;
-      return res.redirect("/");
+    // 2. تحقق من انتهاء صلاحية الكود
+    if (user.verificationCodeExpiry < Date.now()) {
+      return res.status(400).render("verifycode/verify", {
+        errors: { verify: "Code expired. Please request a new one." },
+        oldInput: { code: "" },
+        email,
+        csrfToken: res.locals.csrfToken
+      });
     }
 
-    res.status(400).render("verifycode/verify", {
-      errors: { verify: "Invalid or expired code" },
-      oldInput: { code: req.body.code || "" },
-      email,
-      csrfToken: res.locals.csrfToken
-    });
+    // 3. تحقق من الكود
+    const isMatch = await bcrypt.compare(code, user.verificationCode);
+    if (!isMatch) {
+      return res.status(400).render("verifycode/verify", {
+        errors: { verify: "Wrong code" },
+        oldInput: { code: "" },
+        email,
+        csrfToken: res.locals.csrfToken
+      });
+    }
 
+    // 4. تحقق ناجح → حدث المستخدم مباشرة وأمسح الكود
+    user.isVerified = true;
+    user.verificationCode = null;
+    user.verificationCodeExpiry = null;
+    await user.save();
+
+    return res.redirect("/"); // تحويل بعد التحقق
   } catch (err) {
     console.error("Verify error:", err);
     res.status(500).render("error", { message: "Verification failed" });
@@ -238,16 +369,30 @@ app.get("/verify", (req, res) => {
   res.render("verifycode/verify", {
     errors: {},
     oldInput: { code: "" },
-    email: req.session.pendingEmail || "",
+    email: "", // ما نعتمد على session بعد هلأ
     csrfToken: res.locals.csrfToken
   });
 });
-
 /* =========================
    Pages
 ========================= */
 app.get("/", (req, res) => {
   res.render("layouts/main", { user: req.user || null });
+});
+app.get("/profile", (req, res) => {
+const user = req.user || req.session.user;
+  if (!user) {
+    return res.render("profile/profile", { 
+      user: null, 
+      message: "Please sign in to view your profile" 
+    });
+  }
+  // إذا مسجل دخول، اعرض البروفايل مع بيانات المستخدم
+  res.render("profile/profile", { 
+    user: user,
+    name: user.name,
+    email: user.email
+  });
 });
 
 /* =========================
