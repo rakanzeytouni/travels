@@ -5,13 +5,13 @@ const bcrypt = require("bcrypt");
 const { Resend } = require("resend");
 const sgMail = require('@sendgrid/mail');
 const mongoose = require("mongoose"); 
-const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const { body, validationResult } = require("express-validator");
 const MongoStore = require("connect-mongo").default;
 const rateLimit = require("express-rate-limit");
 const requestIp = require('request-ip');
 const helmet = require("helmet");
+const cookieParser = require("cookie-parser");
 const csrf = require("csurf");
 const passport = require("passport");
 const User = require("./models/User.js");
@@ -39,12 +39,13 @@ const validateRegister = [
     .matches(/[^A-Za-z0-9]/)
     .withMessage("Password must contain at least one symbol"),
 
+  // ✅ الصحيح:
   body("name")
     .trim()
-    .escape()
-    .withMessage("Invalid name")
+    .notEmpty().withMessage("Name is required")  // ← Validator أولاً
+    .isLength({ min: 2 }).withMessage("Name must be at least 2 characters")
+    .escape()  // ← Sanitizer أخيراً
 ];
-
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -103,7 +104,7 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure:process.env.NODE_ENV === "production", 
+    secure:false, 
     sameSite: true,
     maxAge: 60 * 60 * 1000,
     path: '/'
@@ -113,10 +114,22 @@ app.use(session({
 }));
  /* 
 ========================= */
+
+
+// ✅ تهيئة الـ CSRF - التعديل الوحيد المطلوب هنا
+
+
+// ✅ بعد session middleware مباشرة (استبدل كل كود csrf-csrf القديم بهذا):
+/* =========================
+   CSRF Configuration (@edge-csrf/express v2)
+========================= */
+
+
+// ✅ تهيئة الـ CSRF Middleware
 const csrfProtection = require("csurf")({
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false,
     sameSite: true
   }
 });
@@ -129,6 +142,10 @@ app.use((req, res, next) => {
   res.locals.errors = {};
   next();
 });
+
+// ✅ Middleware لإتاحة التوكن في جميع ملفات EJS
+
+
 // في app.js
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
@@ -152,16 +169,12 @@ app.use(passport.session());
 app.use((req, res, next) => {
   res.locals.user = req.user || req.session.user ;
   res.locals.isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : false;
-  console.log(`user:${req.user || req.session.user} `);
-  console.log(`authenticated :${ res.locals.isAuthenticated}`)
-  console.log(`res ${ res.locals.user}`)
+
   next();
 });
 /* =========================
    Rate Limiting - Production Ready
 ========================= */
-
-
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
   max: 5, 
@@ -191,7 +204,7 @@ const verifyLimiter = rateLimit({
 
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 3,
+  max: 5,
   keyGenerator: (req, res) => {
     const ip = requestIp.getClientIp(req) || 'unknown';
     return `register:${ip}`;
@@ -227,10 +240,12 @@ app.get("/regester", (req, res) => {
 app.post("/regester" , validateRegister, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-  return res.status(400).render("register", {
-    errors: errors.array(), // array من الأخطاء
-    oldInput: req.body
+  return res.status(400).render("auth/regester", {
+    errors:  errors.mapped(), 
+    oldInput: req.body,
+    csrfToken: res.locals.csrfToken
   });
+
   }
   try {
     const { name, email, password } = req.body;
@@ -259,7 +274,7 @@ app.post("/regester" , validateRegister, async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).render("auth/regester", {
-        errors: { email: "Email already used" },
+        errors: {email:{ msg: "Email already used" }},
         oldInput: { name, email },
         csrfToken: res.locals.csrfToken
       });
@@ -287,7 +302,6 @@ app.post("/regester" , validateRegister, async (req, res) => {
       html: `<p>Hello ${name}</p><p>Your code: <b>${verificationCode}</b></p>`
     });
   req.session.newuser =newUser ;
-  console.log(`hello new user : ${req.session.newuser}`);
     req.session.pendingEmail = email;
     res.render("verifycode/verify", {
       csrfToken: res.locals.csrfToken,
@@ -296,7 +310,7 @@ app.post("/regester" , validateRegister, async (req, res) => {
       errors: {}
     });
 await sgMail.send(msg);
-console.log(`✅ Email sent to ${email}`);
+
   } catch (err) {
     console.error("Register error:", err);
     res.status(500).render("error", { message: "Something went wrong" });
@@ -365,7 +379,7 @@ app.post("/verify", async (req, res) => {
   }
 });
 
-app.get("/verify", (req, res) => {
+app.get("/verify" , (req, res) => {
   res.render("verifycode/verify", {
     errors: {},
     oldInput: { code: "" },

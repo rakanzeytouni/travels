@@ -8,11 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     const eyeIconContainer = document.getElementById('eyeIcon');
 
-    // Make sure elements exist
-    if (!passwordInput || !eyeIconContainer) {
-        console.error('Password input or eye icon not found!');
-        return;
-    }
+
 
     let isVisible = false;
 

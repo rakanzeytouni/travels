@@ -9,26 +9,35 @@
 <body>
 
     <form id="registerForm" action="/regester" method="POST">
+        <%
+// دالة مساعدة في بداية الملف
+function getError(field) {
+    if (!errors) return '';
+    const err = errors[field];
+    if (typeof err === 'string') return err;
+    if (err && err.msg) return err.msg;
+    return '';
+}
+%>
         <div class="logo-container">
             <img src="" alt="Zen Escape Logo">
         </div>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         
         <input type="text" name="name" value="<%= oldInput?.name || '' %>" id="name" placeholder="Name">
-        <small class="error"><%= errors?.name || '' %></small>
+        <small class="error"><%= errors?.name?.msg || '' %></small>
 
         <input type="email" name="email" value="<%= oldInput?.email || '' %>" id="email" placeholder="Email">
-        <small class="error"><%= errors?.email || '' %></small>
+        <small class="error"><%= getError('email') %></small>
 
         <div class="password-wrapper">
             <input type="password" name="password" value="<%= oldInput?.password || '' %>"  id="password" placeholder="Password">
-               <small class="error"><%= errors?.password || '' %></small>
+               <small class="error"><%= errors?.password?.msg || '' %></small>
             <span class="toggle-password" id="eyeIcon"> 
                 
                 <i data-lucide="eye"></i>
             </span>
         </div>
-        <small class="error"><%= errors?.email|| '' %></small>
         
         <a href="/auth/google" class="google-btn">Sign in with Google</a>
         <button type="submit">Register</button>

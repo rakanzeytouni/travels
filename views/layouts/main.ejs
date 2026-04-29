@@ -7,30 +7,11 @@
 </head>
 <body>
 
-<div id="offlineMessage" style="
-    display: none;
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    min-width: 300px;
-    padding: 16px 24px;
-    background: rgba(220, 38, 38, 0.95);
-    backdrop-filter: blur(8px);
-    color: white;
-    border-radius: 12px;
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-">
+<div id="offlineMessage">
     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M18.36 6.64a9 9 0 010 12.72M15.54 9.46a5 5 0 010 7.08M4 11l2 2 2-2M1 1l22 22"></path>
     </svg>
-    <span style="font-size: 14px; letter-spacing: 0.3px;">
+    <span >
         Connection lost. Please check your internet.
     </span>
 </div>
@@ -51,9 +32,9 @@
         </a>
       </li>
       <li>
-        <form action="/auth/logout" method="POST" style="margin: 0; padding: 0; display: flex;">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button type="submit" class="btn-ticket" style="background: red; color: white !important; border: none; cursor: pointer;">
+        <form action="/auth/logout" method="POST">
+             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button type="submit" class="btn-ticket" >
             <i class="fas fa-sign-out-alt"></i> Logout
           </button>
         </form>
@@ -61,7 +42,7 @@
     <% } else { %>
       <!-- User is NOT logged in -->
       <li>
-        <form action="/auth/login" style="margin: 0; padding: 0; display: flex;">
+        <form action="/auth/login">
           <button type="submit" class="btn-ticket">Sign In</button>
         </form>
       </li>
@@ -100,17 +81,17 @@
 
     <section class="destinations">
         <div class="card">
-            <div class="card-img" style="background: url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=400&q=80') center/cover;"></div>
+            <div class="card-img"></div>
             <div class="card-info">
                 <h3>Paris, France</h3>
-                <p>Starting from <b style="color:#2ecc71">$299</b></p>
+                <p>Starting from <b >$299</b></p>
             </div>
         </div>
         <div class="card">
-            <div class="card-img" style="background: url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=400&q=80') center/cover;"></div>
+            <div class="card-img"></div>
             <div class="card-info">
                 <h3>Dubai, UAE</h3>
-                <p>Starting from <b style="color:#2ecc71">$150</b></p>
+                <p>Starting from <b>$150</b></p>
             </div>
         </div>
     </section>

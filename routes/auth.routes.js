@@ -7,15 +7,9 @@ const csrf = require("csurf");
 const router = express.Router();
 
 // CSRF Protection للـ routes اللي فيها forms
-const csrfProtection = csrf({
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: 'lax'
-  }
-});
+// CSRF Protection للـ routes اللي فيها forms
 
-/* =========================
+/*=======================
    Google OAuth
 ========================= */
 router.get("/google",
@@ -35,15 +29,15 @@ router.get("/google/callback",
 /* =========================
    Login Routes
 ========================= */
-router.get("/login", csrfProtection, (req, res) => {
+router.get("/login",  (req, res) => {
   res.render("auth/login", {
     errors: {},
     oldInput: {},
-    csrfToken: req.csrfToken()
+  csrfToken: req.csrfToken()
   });
 });
 
-router.post("/login", csrfProtection, async (req, res) => {
+router.post("/login",async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -52,7 +46,7 @@ router.post("/login", csrfProtection, async (req, res) => {
       return res.status(400).render("auth/login", {
         errors: { fields: "All fields required" },
         oldInput: { email }, // ← ما تضيف password!
-        csrfToken: req.csrfToken()
+      csrfToken: req.csrfToken()
       });
     }
 
@@ -62,7 +56,7 @@ router.post("/login", csrfProtection, async (req, res) => {
       return res.status(400).render("auth/login", {
         errors: { email: "Invalid email format" },
         oldInput: { email },
-        csrfToken: req.csrfToken()
+         csrfToken: req.csrfToken()
       });
     }
 
@@ -75,7 +69,7 @@ router.post("/login", csrfProtection, async (req, res) => {
       return res.status(401).render("auth/login", {
         errors: genericError,
         oldInput: { email },
-        csrfToken: req.csrfToken()
+     csrfToken: req.csrfToken()
       });
     }
 
@@ -85,7 +79,7 @@ router.post("/login", csrfProtection, async (req, res) => {
       return res.status(423).render("auth/login", {
         errors: { auth: `Account locked. Try again in ${minutesLeft} minutes` },
         oldInput: { email },
-        csrfToken: req.csrfToken()
+       csrfToken: req.csrfToken()  
       });
     }
 
@@ -94,7 +88,7 @@ router.post("/login", csrfProtection, async (req, res) => {
       return res.status(401).render("auth/login", {
         errors: { auth: "Please verify your email first" },
         oldInput: { email },
-        csrfToken: req.csrfToken()
+         csrfToken: req.csrfToken()
       });
     }
 
@@ -117,7 +111,7 @@ router.post("/login", csrfProtection, async (req, res) => {
       return res.status(401).render("auth/login", {
         errors: genericError,
         oldInput: { email },
-        csrfToken: req.csrfToken()
+         csrfToken: req.csrfToken()
       });
     }
 
@@ -126,8 +120,6 @@ router.post("/login", csrfProtection, async (req, res) => {
     user.lockUntil = null;
     await user.save();
   req.session.user = user;
-  console.log(`login user: ${req.session.user}`)
-    // 7. Regenerate Session (Prevent Session Fixation)
     req.session.regenerate((err) => {
       if (err) {
         console.error("Session regeneration error:", err);
@@ -153,7 +145,7 @@ router.post("/login", csrfProtection, async (req, res) => {
 
 /* =========================
    Logout Route
-========================= */
+=*/
 router.post("/logout", (req, res, next) => {
   req.logout((err) => {
     if (err) return next(err);
@@ -170,6 +162,7 @@ router.get("/logout", (req, res) => {
     res.redirect("/");
   });
 });
+
 
 
 module.exports = router;
