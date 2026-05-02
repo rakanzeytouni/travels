@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Trips</title>
+    <link rel="stylesheet" href="/css/adminTrips.css">
+</head>
+<body>
+    <div class="container">
+        <h2>➕ Add New Trip</h2>
+        <div class="card">
+            <form action="/admin/trips" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="from">From</label>
+                        <input type="text" id="from" name="from" placeholder="Departure City" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="to">To</label>
+                        <input type="text" id="to" name="to" placeholder="Destination City" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="price">Price ($)</label>
+                        <input type="number" id="price" name="price" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="airline">Airline</label>
+                        <input type="text" id="airline" name="airline" placeholder="e.g., Delta, Emirates" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Create Trip</button>
+            </form>
+        </div>
+
+        <h2>📋 All Trips</h2>
+        <div class="card">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Date</th>
+                            <th>Price</th>
+                            <th>Airline</th>
+                            <th>Update Price</th>
+                            <th>Delete Trip</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% trips.forEach(trip => { %>
+                            <tr>
+                                <td><%= trip.from %></td>
+                                <td><%= trip.to %></td>
+                                <td><%= trip.date.toISOString().split('T')[0] %></td>
+                                <td>$<%= trip.price %></td>
+                                <td><%= trip.airline %></td>
+                                <td>
+                                    <form class="action-form" action="/admin/trips/<%= trip._id %>?_method=PUT" method="POST">
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <input type="number" name="price" placeholder="New price" step="0.01" required>
+                                        <button type="submit" class="btn-primary btn-sm">Update</button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form class="action-form" action="/admin/trips/<%= trip._id %>?_method=DELETE" method="POST">
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <button type="submit" class="btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

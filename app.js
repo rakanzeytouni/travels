@@ -13,6 +13,7 @@ const requestIp = require('request-ip');
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const csrf = require("csurf");
+const methodOverride = require('method-override');
 const passport = require("passport");
 const User = require("./models/User.js");
 const app = express();
@@ -84,6 +85,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set('trust proxy', 1);
 app.use(express.static(path.join(__dirname, "public")));
+app.use(methodOverride('_method'));
 /* =========================
    Parsing
 ========================= */
@@ -408,7 +410,6 @@ const user = req.user || req.session.user;
     email: user.email
   });
 });
-
 /* =========================
    Error Handlers
 ========================= */

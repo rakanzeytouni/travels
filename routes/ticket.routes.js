@@ -1,8 +1,7 @@
-const express=require("express");
+const express = require('express');
 const router = express.Router();
+const ticketController = require('../controllers/ticket.controller');
 
-router.get("/tickets", (req, res) => {
-  res.send("hello tikets");
-});
+router.get('/search', ticketController.searchTrips);
 
 module.exports = router;

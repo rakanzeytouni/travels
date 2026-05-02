@@ -58,23 +58,23 @@
         <h1>Where to next?</h1>
         <p>Book your flights at the best rates.</p>
     </section>
-
+    <form class="search-container" action="/tickets/search" method="GET">
     <div class="search-container">
         <div class="input-group">
             <label>From</label>
-            <input type="text" placeholder="Origin">
+            <input type="text" name="from" placeholder="Origin">
         </div>
         <div class="input-group">
             <label>To</label>
-            <input type="text" placeholder="Destination">
+            <input type="text" name="to" placeholder="Destination">
         </div>
         <div class="input-group">
             <label>Date</label>
-            <input type="date">
+            <input type="date" name="date">
         </div>
-        <button class="btn-search">Search</button>
+        <button type="submit" class="btn-search">Search</button>
     </div>
-
+    </form>
     <div class="section-title">
         <h2>Popular Deals</h2>
     </div>

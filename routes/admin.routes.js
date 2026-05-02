@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const isAdmin = require("../middleware/admin.middleware");
-
+const controller = require('../controllers/admin.controller');
 
 
 
@@ -35,5 +35,18 @@ router.get("/dachboard",isAdmin,(req, res) => {
   
   res.render("admin/dachboard"); 
 });
+
+router.get('/trips', async (req, res) => {
+    const Trip = require('../models/Trip');
+    const trips = await Trip.find();
+
+    res.render('admin/trips', { trips });
+});
+
+// create
+router.post('/trips', controller.createTrip);
+// update
+router.put('/trips/:id', controller.updatePrice);
+router.delete(`/trips/:id`, controller.deletetrips);
 
 module.exports = router;

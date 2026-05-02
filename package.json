@@ -27,6 +27,7 @@
     "express-validator": "^7.3.2",
     "helmet": "^8.1.0",
     "lucide": "^0.575.0",
+    "method-override": "^3.0.0",
     "mongoose": "^9.1.5",
     "nodemailer": "^8.0.1",
     "passport": "^0.7.0",

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/css/main.css">
+    <title>Search Results</title>
+</head>
+<body>
+    <div class="navbar-container">
+        <header> 
+            <div class="logo">zen-escape</div>
+            <nav>
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/offers">Offers</a></li>
+                </ul>
+            </nav>
+        </header>
+    </div>
+
+    <section class="hero">
+        <h1>Search Results</h1>
+        <p>From <%= searchParams.from %> to <%= searchParams.to %> on <%= searchParams.date %></p>
+    </section>
+    <section class="results">
+        <% if (results.length > 0) { %>
+            <% results.forEach(flight => { %>
+                <div class="card">
+                    <div class="card-info">
+                        <h3><%= flight.from %> → <%= flight.to %></h3>
+                        <p>Date: <%= flight.date %></p>
+                        <p>Airline: <%= flight.airline %></p>
+                        <p><b>$<%= flight.price %></b></p>
+                        <button class="btn-search">Book Now</button>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <p>No flights found. Try different dates.</p>
+        <% } %>
+    </section>
+</body>
+</html>
