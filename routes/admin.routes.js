@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const isAdmin = require("../middleware/admin.middleware");
 const controller = require('../controllers/admin.controller');
+const { createTicketLogic } = require("../controllers/ticket.controller");
+const Booking = require("../models/Ticket");
+
 
 
 
@@ -48,5 +51,30 @@ router.post('/trips', controller.createTrip);
 // update
 router.put('/trips/:id', controller.updatePrice);
 router.delete(`/trips/:id`, controller.deletetrips);
+
+router.get('/tiketsv',(req, res) => {
+   res.render("admin/tiketsv");
+});
+router.get("/bookings", async (req, res) => {
+  const bookings = await Booking.find().populate("trip");
+  res.render("admin/bookings", { bookings });
+});
+
+router.post("/bookings/:id/accepted", async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) return res.send("Booking not found");
+
+    booking.status = "accepted";
+    await booking.save();
+
+    res.redirect("/admin/bookings");
+
+  } catch (err) {
+    res.send(err.message);
+  }
+});
+
 
 module.exports = router;

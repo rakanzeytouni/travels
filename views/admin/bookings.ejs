@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Bookings</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f8fafc; padding: 2rem; }
+        h2 { margin-bottom: 1.5rem; color: #0f172a; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 0.85rem; text-transform: uppercase; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+        .pending { background: #fef3c7; color: #92400e; }
+        .accepted { background: #dcfce7; color: #166534; }
+        .rejected { background: #fee2e2; color: #991b1b; }
+        .btn-action { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; margin-right: 6px; }
+        .btn-accept { background: #22c55e; color: white; }
+        .btn-accept:hover { background: #16a34a; }
+        .btn-reject { background: #ef4444; color: white; }
+        .btn-reject:hover { background: #dc2626; }
+        .no-action { color: #94a3b8; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h2>📋 All Bookings</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Trip</th>
+                <th>Seats</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (!bookings || bookings.length === 0) { %>
+                <tr><td colspan="6" style="text-align:center; padding:2rem;">No bookings yet.</td></tr>
+            <% } else { %>
+                <% bookings.forEach(function(b) { %>
+                    <tr>
+                        <td>
+                            <!-- ✅ التصحيح هنا: Ternary كامل أو استخدام && -->
+                            <%= b.user ? (b.user.name || b.user.email) : 'Guest' %>
+                        </td>
+                        <td>
+                            <% if (b.trip) { %>
+                                <td>
+                                    <%= b.name  %> 
+                                </td>
+                                <strong><%= b.trip.from %> → <%= b.trip.to %></strong><br>
+                                <small style="color:#64748b;"><%= b.trip.airline %> | <%= new Date(b.trip.date).toLocaleDateString() %></small>
+                            <% } else { %>
+                                <span style="color:#94a3b8;">Trip deleted</span>
+                            <% } %>
+                        </td>
+                        <td><%= b.seats %></td>
+                        <td>$<%= b.totalPrice %></td>
+                        <td><span class="badge <%= b.status %>"><%= b.status %></span></td>
+                        <td>
+                            <% if (b.status === 'pending') { %>
+                                <form action="/admin/bookings/<%= b._id %>/accepted" method="POST" style="display:inline;">
+                                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                    <input type="hidden" name="status" value="accepted">
+                                    <button type="submit" class="btn-action btn-accept">Accept</button>
+                                </form>
+                                <form action="/admin/bookings/<%= b._id %>" method="POST" style="display:inline;">
+                                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                    <input type="hidden" name="status" value="rejected">
+                                    <button type="submit" class="btn-action btn-reject">Reject</button>
+                                </form>
+                            <% } else { %>
+                                <span class="no-action">Completed</span>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+            <% } %>
+        </tbody>
+    </table>
+</body>
+</html>

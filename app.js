@@ -423,6 +423,9 @@ app.use((err, req, res, next) => {
     message: process.env.NODE_ENV === "production" ? "Something went wrong" : err.message 
   });
 });
+// تأكد من استدعاء الموديل في أعلى الملف
+const Ticket = require('./models/Ticket'); 
+
 
 /* =========================
    Server Start

@@ -24,14 +24,17 @@
     </section>
     <section class="results">
         <% if (results.length > 0) { %>
-            <% results.forEach(flight => { %>
+            <% results.forEach(trip => { %>
                 <div class="card">
                     <div class="card-info">
-                        <h3><%= flight.from %> → <%= flight.to %></h3>
-                        <p>Date: <%= flight.date %></p>
-                        <p>Airline: <%= flight.airline %></p>
-                        <p><b>$<%= flight.price %></b></p>
-                        <button class="btn-search">Book Now</button>
+                        <h3><%= trip.from %> → <%= trip.to %></h3>
+                        <p>Date: <%= trip.date %></p>
+                        <p>Airline: <%= trip.airline %></p>
+                        <p><b>$<%= trip.price %></b></p>
+                        <form action="/tickets/book/<%= trip._id %>" method="get">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn-search">Book Now</button>
+                </form>
                     </div>
                 </div>
             <% }) %>

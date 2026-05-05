@@ -152,6 +152,7 @@
                 <div class="glass-card">
                     <h3><i class="fas fa-user"></i> Personal Information</h3>
                     <div class="info-group">
+                        <form action="">
                         <label>Name</label>
                         <p></p>
                     </div>
@@ -161,14 +162,15 @@
                     </div>
                     <div class="info-group">
                         <label>Phone</label>
-                        <p>+20 123 456 7890</p>
+                        <p></p>
                     </div>
                     <div class="info-group">
                         <label>Date of Birth</label>
-                        <p>March 15, 1995</p>
+                        <p></p>
                     </div>
                     <button class="btn-edit"><i class="fas fa-edit"></i> Edit Profile</button>
                 </div>
+            </form>
 
                 <div class="glass-card">
                     <h3><i class="fas fa-passport"></i> Travel Documents</h3>
@@ -292,51 +294,6 @@
             </div>
         </div>
     </div>
-
-    <!-- ==================== JAVASCRIPT ==================== -->
-    <script>
-        // Hamburger Menu Toggle
-        const hamburger = document.getElementById('hamburger');
-        const navMobile = document.getElementById('navMobile');
-        const overlay = document.getElementById('overlay');
-
-        function toggleMenu() {
-            hamburger.classList.toggle('active');
-            navMobile.classList.toggle('active');
-            overlay.classList.toggle('active');
-            document.body.style.overflow = navMobile.classList.contains('active') ? 'hidden' : '';
-        }
-
-        hamburger.addEventListener('click', toggleMenu);
-        overlay.addEventListener('click', toggleMenu);
-
-        // Close menu when clicking a link
-        document.querySelectorAll('.nav-mobile a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (navMobile.classList.contains('active')) {
-                    toggleMenu();
-                }
-            });
-        });
-
-        // Close menu on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && navMobile.classList.contains('active')) {
-                toggleMenu();
-            }
-        });
-
-        // Handle window resize
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                if (window.innerWidth > 768 && navMobile.classList.contains('active')) {
-                    toggleMenu();
-                }
-            }, 250);
-        });
-    </script>
-
+   <script src="/js/menu.js"></script>
 </body>
 </html>

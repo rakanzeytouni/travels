@@ -35,3 +35,38 @@ exports.deletetrips=async(req, res)=>{
         res.status(500).json({message:err.message});
     }
 }
+const Ticket = require('../models/Ticket');
+
+// ✅ جلب كل الحجوزات مع تفاصيل الرحلة والمستخدم
+exports.getBookings = async (req, res) => {
+    try {
+        const bookings = await Ticket.find()
+            .populate('trip', 'from to date price airline') // جلب بيانات الرحلة
+            .populate('user', 'name`,`email')                 // جلب بيانات المستخدم (إذا موجود)
+            .sort({ createdAt: -1 });                       // الأحدث أولاً
+
+        res.render('admin/bookings', { 
+            bookings,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+    } catch (err) {
+        res.status(500).render('error', { message: err.message });
+    }
+};
+
+// ✅ تحديث حالة الحجز
+exports.updateBookingStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body; 
+
+        if (!['accept', 'reject'].includes(status)) {
+            return res.status(400).send('Invalid status value');
+        }
+
+        await Ticket.findByIdAndUpdate(id, { status }, { runValidators: true });
+        res.redirect('/admin/bookings');
+    } catch (err) {
+        res.status(500).render('error', { message: err.message });
+    }
+};

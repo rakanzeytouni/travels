@@ -7,9 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const passwordInput = document.getElementById('password');
     const eyeIconContainer = document.getElementById('eyeIcon');
-
-
-
+    
     let isVisible = false;
 
     eyeIconContainer.addEventListener('click', function(e) {
